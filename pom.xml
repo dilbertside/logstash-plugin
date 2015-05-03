@@ -70,6 +70,12 @@
 	    <artifactId>activemq-client</artifactId>
 	    <version>5.11.1</version>
     </dependency>
+    
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>0.8.2.0</version>
+    </dependency>
 
     <dependency>
       <groupId>com.google.code.gson</groupId>

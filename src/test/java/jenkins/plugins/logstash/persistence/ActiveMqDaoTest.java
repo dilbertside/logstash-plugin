@@ -128,7 +128,7 @@ public class ActiveMqDaoTest {
     assertEquals("Wrong password", "password", dao.password);
   }
 
-  //@Test
+  @Test
   public void pushFailUnauthorized() throws Exception {
     // Initialize mocks
     when(mockConnectionFactory.createConnection()).thenThrow(new JMSException("Not authorized"));
@@ -145,7 +145,7 @@ public class ActiveMqDaoTest {
 
   }
 
-  //@Test
+  @Test
   public void pushFailCantConnect() throws Exception {
     // Initialize mocks
     when(mockConnectionFactory.createConnection()).thenThrow(new SocketException("Connection refused"));
@@ -163,7 +163,7 @@ public class ActiveMqDaoTest {
 
   }
 
-  //@Test
+  @Test
   public void pushFailCantWrite() throws Exception {
     // Initialize mocks
     doThrow(new SocketException("Queue length limit exceeded")).when(mockProducer).send(mockSession.createTextMessage("{}"));

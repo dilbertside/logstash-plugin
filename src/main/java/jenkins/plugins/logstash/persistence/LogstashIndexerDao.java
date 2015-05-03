@@ -40,7 +40,8 @@ public interface LogstashIndexerDao {
     REDIS,
     RABBIT_MQ,
     ELASTICSEARCH,
-    ACTIVE_MQ
+    ACTIVE_MQ,
+    KAFKA
   }
 
   String getDescription();

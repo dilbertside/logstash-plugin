@@ -23,6 +23,7 @@ Currently supported methods of input/output:
 * Redis {format => 'json_event'}
 * RabbitMQ {mechanism => PLAIN}
 * ActiveMQ {mechanism => PLAIN}
+* KAFKA {mechanism => PLAIN}
 
 License
 =======
