@@ -142,14 +142,19 @@ public class BuildData {
     rootBuildNum = build.getRootBuild().getNumber();
     buildVariables = build.getBuildVariables();
 
-    Map<String, String> env = new HashMap<String, String>();
-    List<Environment> environmentList = build.getEnvironments();
-    if (environmentList != null) {
-      for (Environment e : environmentList) {
-        if (e != null) {
-          e.buildEnvVars(env);
-          if(!env.isEmpty())
-            buildVariables.putAll(env);
+    // Get environment build variables and merge them into the buildVariables map
+    Map<String, String> buildEnvVariables = new HashMap<String, String>();
+    List<Environment> buildEnvironments = build.getEnvironments();
+    if (buildEnvironments != null) {
+      for (Environment env : buildEnvironments) {
+        if (env == null) {
+          continue;
+        }
+
+        env.buildEnvVars(buildEnvVariables);
+        if (!buildEnvVariables.isEmpty()) {
+          buildVariables.putAll(buildEnvVariables);
+          buildEnvVariables.clear();
         }
       }
     }

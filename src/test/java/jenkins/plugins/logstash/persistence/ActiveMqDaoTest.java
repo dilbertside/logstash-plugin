@@ -3,7 +3,7 @@ package jenkins.plugins.logstash.persistence;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
-import java.io.PrintStream;
+import java.io.IOException;
 import java.net.SocketException;
 
 import javax.jms.Connection;
@@ -16,11 +16,11 @@ import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
@@ -34,7 +34,6 @@ public class ActiveMqDaoTest {
   @Mock Queue mockDestination;
   @Mock MessageProducer mockProducer;
   @Mock TextMessage mockMessage;
-  @Mock PrintStream mockLogger;
 
   ActiveMqDao createDao(String host, int port, String key, String username, String password) {
     ActiveMqDao factory = new ActiveMqDao(mockConnectionFactory, host, port, key, username, password);
@@ -75,7 +74,6 @@ public class ActiveMqDaoTest {
     verifyNoMoreInteractions(mockDestination);
     verifyNoMoreInteractions(mockProducer);
     verifyNoMoreInteractions(mockMessage);
-    verifyNoMoreInteractions(mockLogger);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -136,13 +134,15 @@ public class ActiveMqDaoTest {
     when(mockConnectionFactory.createConnection()).thenThrow(new JMSException("Not authorized"));
 
     // Unit under test
-    long result = dao.push("", mockLogger);
+    try {
+      dao.push("{}");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockConnectionFactory).createConnection();
+      assertEquals("wrong error message", "javax.jms.JMSException: Not authorized", ExceptionUtils.getMessage(e));
+      throw e;
+    }
 
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockConnectionFactory).createConnection();
-    verify(mockLogger).println(Matchers.startsWith("javax.jms.JMSException: Not authorized"));
   }
 
   //@Test
@@ -151,13 +151,16 @@ public class ActiveMqDaoTest {
     when(mockConnectionFactory.createConnection()).thenThrow(new SocketException("Connection refused"));
 
     // Unit under test
-    long result = dao.push("", mockLogger);
+    try {
+      dao.push("");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockConnectionFactory).createConnection();
+      //verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Connection refused"));
+      assertEquals("wrong error message", "java.net.SocketException: Connection refused", ExceptionUtils.getMessage(e));
+      throw e;
+    }
 
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockConnectionFactory).createConnection();
-    verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Connection refused"));
   }
 
   //@Test
@@ -166,19 +169,23 @@ public class ActiveMqDaoTest {
     doThrow(new SocketException("Queue length limit exceeded")).when(mockProducer).send(mockSession.createTextMessage("{}"));
 
     // Unit under test
-    long result = dao.push("{}", mockLogger);
+    dao.push("{}");
+    try {
+      dao.push("{}");
+    } catch (IOException e) {
+      // Verify results
+      verify(mockConnectionFactory).createConnection();
+      verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
+      verify(mockSession).createQueue("logstash");
+      verify(mockSession).createProducer(mockDestination);
+      mockProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+      verify(mockSession).createTextMessage("{}");
+      verify(mockProducer).send(mockMessage);
+      //verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Queue length limit exceeded"));
+      assertEquals("wrong error message", "java.net.SocketException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
+      throw e;
+    }
 
-    // Verify results
-    assertEquals("Return code should be an error", -1L, result);
-
-    verify(mockConnectionFactory).createConnection();
-    verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
-    verify(mockSession).createQueue("logstash");
-    verify(mockSession).createProducer(mockDestination);
-    mockProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-    verify(mockSession).createTextMessage("{}");
-    verify(mockProducer).send(mockMessage);
-    verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Queue length limit exceeded"));
   }
 
   @Test
@@ -186,11 +193,8 @@ public class ActiveMqDaoTest {
     String json = "{ 'foo': 'bar' }";
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
-
+    dao.push(json);
     // Verify results
-    assertEquals("Unexpected return code", 1L, result);
-
     verify(mockConnectionFactory).createConnection();
     verify(mockConnection).start();
     verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -201,6 +205,7 @@ public class ActiveMqDaoTest {
     verify(mockProducer).send(mockMessage);
     verify(mockSession).close();
     verify(mockConnection).close();
+
   }
 
   @Test
@@ -209,11 +214,8 @@ public class ActiveMqDaoTest {
     dao = createDao("localhost", 5672, "logstash", null, null);
 
     // Unit under test
-    long result = dao.push(json, mockLogger);
-
+    dao.push(json);
     // Verify results
-    assertEquals("Unexpected return code", 1L, result);
-
     verify(mockConnectionFactory).createConnection();
     verify(mockConnection).start();
     verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -224,5 +226,6 @@ public class ActiveMqDaoTest {
     verify(mockProducer).send(mockMessage);
     verify(mockSession).close();
     verify(mockConnection).close();
+
   }
 }

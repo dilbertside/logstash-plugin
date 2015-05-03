@@ -1,17 +1,16 @@
 package jenkins.plugins.logstash.persistence;
 
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import hudson.EnvVars;
 import hudson.model.Environment;
 import hudson.model.EnvironmentList;
 import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.Node;
 import hudson.model.Project;
-import hudson.slaves.EnvironmentVariablesNodeProperty;
 import hudson.tasks.test.AbstractTestResultAction;
 import hudson.tasks.test.TestResult;
 
@@ -19,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.Map;
 
 import jenkins.plugins.logstash.persistence.BuildData.TestData;
@@ -30,9 +30,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("rawtypes")
 @RunWith(MockitoJUnitRunner.class)
@@ -44,15 +47,12 @@ public class BuildDataTest {
   @Mock AbstractTestResultAction mockTestResultAction;
   @Mock Project mockProject;
   @Mock Node mockNode;
+  @Mock Environment mockEnvironment;
   @Mock Date mockDate;
   @Mock GregorianCalendar mockCalendar;
-  @Mock Environment mockEnvironment;
 
   @Before
   public void before() throws Exception {
-    EnvVars envVars = new EnvironmentVariablesNodeProperty().getEnvVars();
-    envVars.put("sampleEnvVarKey", "sampleEnvVarValue");
-    mockEnvironment.buildEnvVars(envVars);
     when(mockBuild.getResult()).thenReturn(Result.SUCCESS);
     when(mockBuild.getDisplayName()).thenReturn("BuildDataTest");
     when(mockBuild.getFullDisplayName()).thenReturn("BuildDataTest #123456");
@@ -63,9 +63,9 @@ public class BuildDataTest {
     when(mockBuild.getTimestamp()).thenReturn(mockCalendar);
     when(mockBuild.getRootBuild()).thenReturn(mockBuild);
     when(mockBuild.getBuildVariables()).thenReturn(Collections.emptyMap());
+    when(mockBuild.getEnvironments()).thenReturn(null);
     when(mockBuild.getLog(3)).thenReturn(Arrays.asList("line 1", "line 2", "line 3"));
     when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(mockTestResultAction);
-    when(mockBuild.getEnvironments()).thenReturn(new EnvironmentList(Collections.singletonList(mockEnvironment)));
 
     when(mockTestResultAction.getTotalCount()).thenReturn(0);
     when(mockTestResultAction.getSkipCount()).thenReturn(0);
@@ -82,6 +82,7 @@ public class BuildDataTest {
     verifyNoMoreInteractions(mockBuild);
     verifyNoMoreInteractions(mockTestResultAction);
     verifyNoMoreInteractions(mockProject);
+    verifyNoMoreInteractions(mockEnvironment);
     verifyNoMoreInteractions(mockDate);
   }
 
@@ -89,6 +90,7 @@ public class BuildDataTest {
   public void constructorSuccessBuiltOnNull() throws Exception {
     when(mockBuild.getBuiltOn()).thenReturn(null);
 
+    // Unit under test
     BuildData buildData = new BuildData(mockBuild, mockDate);
 
     // build.getDuration() is always 0 in Notifiers
@@ -130,6 +132,7 @@ public class BuildDataTest {
     when(mockNode.getDisplayName()).thenReturn("Jenkins");
     when(mockNode.getLabelString()).thenReturn("");
 
+    // Unit under test
     BuildData buildData = new BuildData(mockBuild, mockDate);
 
     // build.getDuration() is always 0 in Notifiers
@@ -171,6 +174,7 @@ public class BuildDataTest {
     when(mockNode.getDisplayName()).thenReturn("Test Slave 01");
     when(mockNode.getLabelString()).thenReturn("Test Slave");
 
+    // Unit under test
     BuildData buildData = new BuildData(mockBuild, mockDate);
 
     // build.getDuration() is always 0 in Notifiers
@@ -215,6 +219,7 @@ public class BuildDataTest {
     when(mockTestResultAction.getFailCount()).thenReturn(1);
     when(mockTestResultAction.getFailedTests()).thenReturn(Arrays.asList(mockTestResult));
 
+    // Unit under test
     BuildData buildData = new BuildData(mockBuild, mockDate);
 
     Assert.assertEquals("Incorrect test results", 123, buildData.testResults.totalCount);
@@ -251,6 +256,7 @@ public class BuildDataTest {
   public void constructorSuccessNoTests() {
     when(mockBuild.getAction(AbstractTestResultAction.class)).thenReturn(null);
 
+    // Unit under test
     BuildData buildData = new BuildData(mockBuild, mockDate);
 
     Assert.assertEquals("Incorrect test results", null, buildData.testResults);
@@ -270,6 +276,62 @@ public class BuildDataTest {
     verify(mockBuild, times(3)).getRootBuild();
     verify(mockBuild).getBuildVariables();
     verify(mockBuild).getEnvironments();
+
+    verify(mockProject, times(2)).getName();
+
+    verify(mockDate).getTime();
+  }
+
+  @Test
+  public void constructorSuccessWithEnvVars() throws Exception {
+    when(mockBuild.getEnvironments()).thenReturn(new EnvironmentList(Arrays.asList(mockEnvironment)));
+    when(mockBuild.getBuildVariables()).thenReturn(new HashMap<String, String>());
+
+    when(mockBuild.getBuiltOn()).thenReturn(mockNode);
+
+    when(mockNode.getDisplayName()).thenReturn("Jenkins");
+    when(mockNode.getLabelString()).thenReturn("");
+
+    final String envVarKey = "EnvVarKey";
+    final String envVarVal = "EnvVarVal";
+    doAnswer(new Answer<Void>() {
+      @SuppressWarnings("unchecked")
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        Map<String, String> output = (Map<String, String>) invocation.getArguments()[0];
+        output.put(envVarKey, envVarVal);
+        return null;
+      }
+    }).when(mockEnvironment).buildEnvVars(Matchers.<Map<String, String>>any());
+
+    // Unit under test
+    BuildData buildData = new BuildData(mockBuild, mockDate);
+
+    // Verify results
+    Assert.assertEquals("Wrong number of environment variables", 1, buildData.getBuildVariables().size());
+    Assert.assertEquals("Missing environment variable '" + envVarKey + "'", envVarVal, buildData.getBuildVariables().get(envVarKey));
+
+    verify(mockBuild).getId();
+    verify(mockBuild, times(2)).getResult();
+    verify(mockBuild, times(2)).getParent();
+    verify(mockBuild, times(2)).getDisplayName();
+    verify(mockBuild).getFullDisplayName();
+    verify(mockBuild).getDescription();
+    verify(mockBuild).getUrl();
+    verify(mockBuild).getAction(AbstractTestResultAction.class);
+    verify(mockBuild).getBuiltOn();
+    verify(mockBuild, times(2)).getNumber();
+    verify(mockBuild).getTimestamp();
+    verify(mockBuild, times(3)).getRootBuild();
+    verify(mockBuild).getBuildVariables();
+    verify(mockBuild).getEnvironments();
+
+    verify(mockEnvironment).buildEnvVars(Matchers.<Map<String, String>>any());
+
+    verify(mockTestResultAction).getTotalCount();
+    verify(mockTestResultAction).getSkipCount();
+    verify(mockTestResultAction).getFailCount();
+    verify(mockTestResultAction, times(2)).getFailedTests();
 
     verify(mockProject, times(2)).getName();
 

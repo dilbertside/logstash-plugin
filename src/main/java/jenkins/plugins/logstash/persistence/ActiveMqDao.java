@@ -24,7 +24,7 @@
 
 package jenkins.plugins.logstash.persistence;
 
-import java.io.PrintStream;
+import java.io.IOException;
 
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
@@ -36,7 +36,6 @@ import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
 
 /**
  * ActiveMq Data Access Object.
@@ -74,7 +73,7 @@ public class ActiveMqDao extends AbstractLogstashIndexerDao {
   }
 
   @Override
-  public long push(String data, PrintStream logger) {
+  public void push(String data) throws IOException {
     try {
       // Create a Connection
       Connection connection = connectionFactory.createConnection();
@@ -98,15 +97,14 @@ public class ActiveMqDao extends AbstractLogstashIndexerDao {
       // Clean up
       session.close();
       connection.close();
-      return 1;
     } catch (JMSException e) {
-      logger.println(ExceptionUtils.getStackTrace(e));
+      throw new IOException(e);
     }
-    return -1;
   }
 
   @Override
   public IndexerType getIndexerType() {
     return IndexerType.ACTIVE_MQ;
   }
+
 }

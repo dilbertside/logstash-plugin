@@ -40,6 +40,7 @@ import jenkins.model.Jenkins;
 import jenkins.plugins.logstash.persistence.BuildData;
 import jenkins.plugins.logstash.persistence.LogstashIndexerDao;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -76,7 +77,12 @@ public class LogstashBuildWrapper extends BuildWrapper {
     try {
       dao = getDao();
     } catch (InstantiationException e) {
-      e.printStackTrace();
+      try {
+        logger.write(ExceptionUtils.getStackTrace(e).getBytes());
+      } catch (IOException e1) {
+        e.printStackTrace();
+      }
+
     }
 
     BuildData buildData = new BuildData(build, new Date());
@@ -91,11 +97,11 @@ public class LogstashBuildWrapper extends BuildWrapper {
   }
 
   // Method to encapsulate calls to Jenkins.getInstance() for unit-testing
-  protected LogstashIndexerDao getDao() throws InstantiationException {
+  LogstashIndexerDao getDao() throws InstantiationException {
     return LogstashInstallation.getLogstashDescriptor().getIndexerDao();
   }
 
-  protected String getJenkinsUrl() {
+  String getJenkinsUrl() {
     return Jenkins.getInstance().getRootUrl();
   }
 
