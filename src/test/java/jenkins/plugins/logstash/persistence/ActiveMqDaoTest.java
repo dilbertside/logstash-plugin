@@ -128,7 +128,7 @@ public class ActiveMqDaoTest {
     assertEquals("Wrong password", "password", dao.password);
   }
 
-  //@Test
+  @Test(expected = IOException.class)
   public void pushFailUnauthorized() throws Exception {
     // Initialize mocks
     when(mockConnectionFactory.createConnection()).thenThrow(new JMSException("Not authorized"));
@@ -139,16 +139,16 @@ public class ActiveMqDaoTest {
     } catch (IOException e) {
       // Verify results
       verify(mockConnectionFactory).createConnection();
-      assertEquals("wrong error message", "javax.jms.JMSException: Not authorized", ExceptionUtils.getMessage(e));
+      assertEquals("wrong error message", "IOException: javax.jms.JMSException: Not authorized", ExceptionUtils.getMessage(e));
       throw e;
     }
 
   }
 
-  //@Test
+  @Test(expected = IOException.class)
   public void pushFailCantConnect() throws Exception {
     // Initialize mocks
-    when(mockConnectionFactory.createConnection()).thenThrow(new SocketException("Connection refused"));
+    when(mockConnectionFactory.createConnection()).thenThrow(new JMSException("Connection refused"));
 
     // Unit under test
     try {
@@ -156,33 +156,30 @@ public class ActiveMqDaoTest {
     } catch (IOException e) {
       // Verify results
       verify(mockConnectionFactory).createConnection();
-      //verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Connection refused"));
-      assertEquals("wrong error message", "java.net.SocketException: Connection refused", ExceptionUtils.getMessage(e));
+      assertEquals("wrong error message", "IOException: javax.jms.JMSException: Connection refused", ExceptionUtils.getMessage(e));
       throw e;
     }
 
   }
 
-  //@Test
+  @Test(expected = IOException.class)
   public void pushFailCantWrite() throws Exception {
     // Initialize mocks
-    doThrow(new SocketException("Queue length limit exceeded")).when(mockProducer).send(mockSession.createTextMessage("{}"));
+    doThrow(new JMSException("Queue length limit exceeded")).when(mockSession).createTextMessage("{}");
 
     // Unit under test
-    dao.push("{}");
     try {
       dao.push("{}");
     } catch (IOException e) {
       // Verify results
       verify(mockConnectionFactory).createConnection();
+      verify(mockConnection).start();
       verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
       verify(mockSession).createQueue("logstash");
       verify(mockSession).createProducer(mockDestination);
-      mockProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+      verify(mockProducer).setDeliveryMode(DeliveryMode.NON_PERSISTENT);
       verify(mockSession).createTextMessage("{}");
-      verify(mockProducer).send(mockMessage);
-      //verify(mockLogger).println(Matchers.startsWith("java.net.SocketException: Queue length limit exceeded"));
-      assertEquals("wrong error message", "java.net.SocketException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
+      assertEquals("wrong error message", "IOException: javax.jms.JMSException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
       throw e;
     }
 
