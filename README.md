@@ -22,6 +22,7 @@ Currently supported methods of input/output:
 * ElasticSearch {REST API}
 * Redis {format => 'json_event'}
 * RabbitMQ {mechanism => PLAIN}
+* ActiveMQ {mechanism => PLAIN}
 
 License
 =======
