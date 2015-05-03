@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/dilbertside/logstash-plugin.svg)](https://travis-ci.org/dilbertside/logstash-plugin)
+
+This fork is not merged with upstream because of incompability with Java6, ActiveMQ is not strictly compatible with Java6, only Java7. If you are running on Java7, no problem.
+
 Jenkins Logstash Plugin
 =======================
 
@@ -23,6 +27,7 @@ Currently supported methods of input/output:
 * Redis {format => 'json_event'}
 * RabbitMQ {mechanism => PLAIN}
 * ActiveMQ {mechanism => PLAIN}
+* Apache Kafka {mechanism => PLAIN}, see branch feature-kafka (status draft)
 
 License
 =======
