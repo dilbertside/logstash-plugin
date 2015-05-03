@@ -23,7 +23,13 @@ public class IndexerDaoFactoryTest {
   public void successNulls() throws Exception {
     for (IndexerType type : IndexerType.values()) {
       String host = type == IndexerType.ELASTICSEARCH ? "http://localhost" : "localhost";
-      LogstashIndexerDao dao = IndexerDaoFactory.getInstance(type, host, null, "key", null, null);
+      /*
+       * Work around for Kafka detection of invalid port
+       * Error generated: 
+       * java.lang.InstantiationException: ConfigException: Invalid url in bootstrap.servers: localhost:-1
+       */
+      Integer port = type == IndexerType.KAFKA ? 0 : null;
+      LogstashIndexerDao dao = IndexerDaoFactory.getInstance(type, host, port, "key", null, null);
 
       assertNotNull("Result was null", dao);
       assertEquals("Result implements wrong IndexerType", type, dao.getIndexerType());

@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.KafkaException;
 
@@ -41,7 +42,7 @@ import org.apache.kafka.common.KafkaException;
  */
 public class KafkaDao extends AbstractLogstashIndexerDao {
 
-  KafkaProducer<String, String> kafkaProducer;
+  Producer<String, String> kafkaProducer = null;
   String topic;
 
   //primary constructor used by indexer factory
@@ -50,7 +51,7 @@ public class KafkaDao extends AbstractLogstashIndexerDao {
   }
 
   // Constructor for unit testing
-  KafkaDao(KafkaProducer<String, String> kafkaProducer, String host, int port, String key, String username, String password) {
+  KafkaDao(Producer<String, String> _kafkaProducer, String host, int port, String key, String username, String password) {
     super(host, port, key, username, password);
 
     if (StringUtils.isBlank(key)) {
@@ -58,16 +59,18 @@ public class KafkaDao extends AbstractLogstashIndexerDao {
     }
     
     // The KafkaProducer is a singleton as it can shared be shared among all threads for best performance
-    if(null == kafkaProducer){
+    if(null == _kafkaProducer){
       Map<String, Object> props = new HashMap<String, Object>();
-      props.put("metadata.broker.list", String.format("%s:%s", host, port))  ;
-      props.put("serializer.class", "kafka.serializer.StringEncoder");
-      props.put("request.required.acks", "1");
+      props.put("bootstrap.servers", String.format("%s:%s", host, port));
+      props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+      props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+      props.put("acks", "0");
       props.put("client.id", "jenkins-logstash");
       this.topic = key;
       this.kafkaProducer = new KafkaProducer<String, String>(props);
     } else {
-      this.kafkaProducer = kafkaProducer;
+      this.topic = key;
+      this.kafkaProducer = _kafkaProducer;
     }
   }
 
