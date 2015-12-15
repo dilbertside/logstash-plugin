@@ -1,3 +1,14 @@
+1.1.1
+-----
+* Remove redundant timestamp from payload
+* Don't try to create RabbitMQ queue if it already exists
+* Remove unnecessary external synchronization between builds
+
+1.1.0
+-----
+* Add Syslog support
+* Requires Java runtime 7 or newer
+
 1.0.4
 -----
 * Add support for pushing directly to Elasticsearch

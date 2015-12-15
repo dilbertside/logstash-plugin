@@ -40,6 +40,7 @@ public interface LogstashIndexerDao {
     REDIS,
     RABBIT_MQ,
     ELASTICSEARCH,
+    SYSLOG,
     ACTIVE_MQ
   }
 

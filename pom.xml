@@ -37,7 +37,7 @@
 
   <artifactId>logstash</artifactId>
   <packaging>hpi</packaging>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>1.1.2-SNAPSHOT</version>
   <name>Logstash</name>
   <description>A Logstash agent to send Jenkins logs to a Logstash indexer.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
@@ -68,7 +68,7 @@
     <dependency>
 	    <groupId>org.apache.activemq</groupId>
 	    <artifactId>activemq-client</artifactId>
-	    <version>5.11.1</version>
+	    <version>5.12.1</version>
     </dependency>
 
     <dependency>
@@ -86,6 +86,14 @@
       <type>jar</type>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>com.cloudbees</groupId>
+      <artifactId>syslog-java-client</artifactId>
+      <version>1.0.6</version>
+      <type>jar</type>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -94,8 +102,8 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>1.7</source>
+          <target>1.7</target>
         </configuration>
       </plugin>
 
