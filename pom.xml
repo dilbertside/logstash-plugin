@@ -37,7 +37,7 @@
 
   <artifactId>logstash</artifactId>
   <packaging>hpi</packaging>
-  <version>1.1.2-SNAPSHOT</version>
+  <version>1.1.2</version>
   <name>Logstash</name>
   <description>A Logstash agent to send Jenkins logs to a Logstash indexer.</description>
   <url>http://wiki.jenkins-ci.org/display/JENKINS/Logstash+Plugin</url>
@@ -69,6 +69,16 @@
 	    <groupId>org.apache.activemq</groupId>
 	    <artifactId>activemq-client</artifactId>
 	    <version>5.12.1</version>
+	    <exclusions>
+	     <exclusion>
+	      <groupId>org.slf4j</groupId>
+	      <artifactId>slf4j-api</artifactId>
+	     </exclusion>
+       <exclusion>
+        <groupId>org.fusesource.hawtbuf</groupId>
+        <artifactId>hawtbuf-project</artifactId>
+       </exclusion>
+	    </exclusions>
     </dependency>
 
     <dependency>
@@ -102,8 +112,8 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>1.6</source>
+          <target>1.6</target>
         </configuration>
       </plugin>
 
@@ -135,6 +145,49 @@
         </configuration>
       </plugin>
     </plugins>
+    <pluginManagement>
+     <plugins>
+      <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+      <plugin>
+       <groupId>org.eclipse.m2e</groupId>
+       <artifactId>lifecycle-mapping</artifactId>
+       <version>1.0.0</version>
+       <configuration>
+        <lifecycleMappingMetadata>
+         <pluginExecutions>
+          <pluginExecution>
+           <pluginExecutionFilter>
+            <groupId>org.codehaus.gmaven</groupId>
+            <artifactId>gmaven-plugin</artifactId>
+            <versionRange>[1.5-jenkins-1,)</versionRange>
+            <goals>
+             <goal>generateTestStubs</goal>
+             <goal>testCompile</goal>
+            </goals>
+           </pluginExecutionFilter>
+           <action>
+            <ignore></ignore>
+           </action>
+          </pluginExecution>
+          <pluginExecution>
+           <pluginExecutionFilter>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <versionRange>[1.0.1,)</versionRange>
+            <goals>
+             <goal>display-info</goal>
+            </goals>
+           </pluginExecutionFilter>
+           <action>
+            <ignore></ignore>
+           </action>
+          </pluginExecution>
+         </pluginExecutions>
+        </lifecycleMappingMetadata>
+       </configuration>
+      </plugin>
+     </plugins>
+    </pluginManagement>
   </build>
 
   <developers>

@@ -25,7 +25,9 @@
 package jenkins.plugins.logstash.persistence;
 
 import java.io.IOException;
-
+import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -45,6 +47,8 @@ import org.apache.commons.lang.StringUtils;
  */
 public class ActiveMqDao extends AbstractLogstashIndexerDao {
 
+  private static final Logger logger = Logger.getLogger( ActiveMqDao.class.getName() );
+  
   ActiveMQConnectionFactory connectionFactory = null;
 
   //primary constructor used by indexer factory
@@ -74,31 +78,49 @@ public class ActiveMqDao extends AbstractLogstashIndexerDao {
 
   @Override
   public void push(String data) throws IOException {
+    Connection connection = null;
+    Session session = null;
     try {
       // Create a Connection
-      Connection connection = connectionFactory.createConnection();
+      connection = connectionFactory.createQueueConnection();
       connection.start();
       // Create a Session
-      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+      session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       
-      // Create the destination (Topic or Queue)
+      // Create the destination Queue
       Destination destination = session.createQueue(key);
       
-      // Create a MessageProducer from the Session to the Topic or Queue
+      // Create the MessageProducer from the Session to the Queue
       MessageProducer producer = session.createProducer(destination);
       producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
       
-      // Create a messages
+      // Create the message
       TextMessage message = session.createTextMessage(data);
-
+      String txId = UUID.randomUUID().toString();
+      message.setStringProperty("txId", txId);
+      message.setJMSType("application/json");
       // Tell the producer to send the message
       producer.send(message);
+      
+      logger.log( Level.FINER, String.format("JMS message sent with txId [%s]", txId));
 
-      // Clean up
-      session.close();
-      connection.close();
     } catch (JMSException e) {
+      logger.log( Level.SEVERE, null != e.getMessage() ? e.getMessage() : e.getClass().getName());
       throw new IOException(e);
+    }finally {
+      // Clean up
+      try {
+        if(null != session)
+          session.close();
+      } catch (JMSException e) {
+        logger.log( Level.WARNING, null != e.getMessage() ? e.getMessage() : e.getClass().getName());
+      }
+      try {
+        if(null != connection)
+          connection.close();
+      } catch (JMSException e) {
+        logger.log( Level.WARNING, null != e.getMessage() ? e.getMessage() : e.getClass().getName());
+      }
     }
   }
 

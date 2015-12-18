@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.UUID;
 
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
@@ -34,6 +35,7 @@ public class ActiveMqDaoTest {
   @Mock Queue mockDestination;
   @Mock MessageProducer mockProducer;
   @Mock TextMessage mockMessage;
+  String uuid =  UUID.randomUUID().toString();
 
   ActiveMqDao createDao(String host, int port, String key, String username, String password) {
     ActiveMqDao factory = new ActiveMqDao(mockConnectionFactory, host, port, key, username, password);
@@ -177,8 +179,9 @@ public class ActiveMqDaoTest {
       verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
       verify(mockSession).createQueue("logstash");
       verify(mockSession).createProducer(mockDestination);
-      verify(mockProducer).setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+      verify(mockProducer).setDeliveryMode(DeliveryMode.PERSISTENT);
       verify(mockSession).createTextMessage("{}");
+      verify(mockMessage).setStringProperty("txId", uuid);
       assertEquals("wrong error message", "IOException: javax.jms.JMSException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
       throw e;
     }
@@ -197,8 +200,9 @@ public class ActiveMqDaoTest {
     verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
     verify(mockSession).createQueue("logstash");
     verify(mockSession).createProducer(mockDestination);
-    verify(mockProducer).setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+    verify(mockProducer).setDeliveryMode(DeliveryMode.PERSISTENT);
     verify(mockSession).createTextMessage(json);
+    verify(mockMessage).setStringProperty("txId",uuid);
     verify(mockProducer).send(mockMessage);
     verify(mockSession).close();
     verify(mockConnection).close();
@@ -218,8 +222,9 @@ public class ActiveMqDaoTest {
     verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
     verify(mockSession).createQueue("logstash");
     verify(mockSession).createProducer(mockDestination);
-    verify(mockProducer).setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+    verify(mockProducer).setDeliveryMode(DeliveryMode.PERSISTENT);
     verify(mockSession).createTextMessage(json);
+    verify(mockMessage).setStringProperty("txId",uuid);
     verify(mockProducer).send(mockMessage);
     verify(mockSession).close();
     verify(mockConnection).close();
