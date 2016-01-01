@@ -28,13 +28,13 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.jms.Connection;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.jms.TopicConnection;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.lang.StringUtils;
@@ -78,31 +78,32 @@ public class ActiveMqDao extends AbstractLogstashIndexerDao {
 
   @Override
   public void push(String data) throws IOException {
-    Connection connection = null;
+    TopicConnection connection = null;
     Session session = null;
     try {
       // Create a Connection
-      connection = connectionFactory.createQueueConnection();
+      connection = connectionFactory.createTopicConnection();
+      
       connection.start();
+      
       // Create a Session
       session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
       
       // Create the destination Queue
-      Destination destination = session.createQueue(key);
+      Destination destination = session.createTopic(key);
       
       // Create the MessageProducer from the Session to the Queue
       MessageProducer producer = session.createProducer(destination);
-      producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+      
+      producer.setDeliveryMode(DeliveryMode.PERSISTENT);
       
       // Create the message
       TextMessage message = session.createTextMessage(data);
-      String txId = UUID.randomUUID().toString();
-      message.setStringProperty("txId", txId);
       message.setJMSType("application/json");
       // Tell the producer to send the message
       producer.send(message);
       
-      logger.log( Level.FINER, String.format("JMS message sent with txId [%s]", txId));
+      //logger.log( Level.FINER, String.format("JMS message sent with ID [%s]", message.getJMSMessageID()));
 
     } catch (JMSException e) {
       logger.log( Level.SEVERE, null != e.getMessage() ? e.getMessage() : e.getClass().getName());

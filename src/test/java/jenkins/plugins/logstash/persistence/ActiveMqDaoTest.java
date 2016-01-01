@@ -4,16 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.net.SocketException;
-import java.util.UUID;
 
-import javax.jms.Connection;
+import javax.jms.TopicConnection;
 import javax.jms.DeliveryMode;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
-import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.jms.Topic;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.commons.lang.StringUtils;
@@ -30,12 +28,11 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class ActiveMqDaoTest {
   ActiveMqDao dao;
   @Mock ActiveMQConnectionFactory mockConnectionFactory;
-  @Mock Connection mockConnection;
+  @Mock TopicConnection mockConnection;
   @Mock Session mockSession;
-  @Mock Queue mockDestination;
+  @Mock Topic mockDestination;
   @Mock MessageProducer mockProducer;
   @Mock TextMessage mockMessage;
-  String uuid =  UUID.randomUUID().toString();
 
   ActiveMqDao createDao(String host, int port, String key, String username, String password) {
     ActiveMqDao factory = new ActiveMqDao(mockConnectionFactory, host, port, key, username, password);
@@ -56,11 +53,11 @@ public class ActiveMqDaoTest {
     // Note that we can't run these tests in parallel
     dao = createDao("localhost", port, "logstash", "username", "password");
 
-    when(mockConnectionFactory.createConnection()).thenReturn(mockConnection);
+    when(mockConnectionFactory.createTopicConnection()).thenReturn(mockConnection);
 
     when(mockConnection.createSession(false, Session.AUTO_ACKNOWLEDGE)).thenReturn(mockSession);
     
-    when(mockSession.createQueue("logstash")).thenReturn(mockDestination);
+    when(mockSession.createTopic("logstash")).thenReturn(mockDestination);
     
     when(mockSession.createProducer(mockDestination)).thenReturn(mockProducer);
     
@@ -133,14 +130,14 @@ public class ActiveMqDaoTest {
   @Test(expected = IOException.class)
   public void pushFailUnauthorized() throws Exception {
     // Initialize mocks
-    when(mockConnectionFactory.createConnection()).thenThrow(new JMSException("Not authorized"));
+    when(mockConnectionFactory.createTopicConnection()).thenThrow(new JMSException("Not authorized"));
 
     // Unit under test
     try {
       dao.push("{}");
     } catch (IOException e) {
       // Verify results
-      verify(mockConnectionFactory).createConnection();
+      verify(mockConnectionFactory).createTopicConnection();
       assertEquals("wrong error message", "IOException: javax.jms.JMSException: Not authorized", ExceptionUtils.getMessage(e));
       throw e;
     }
@@ -150,14 +147,14 @@ public class ActiveMqDaoTest {
   @Test(expected = IOException.class)
   public void pushFailCantConnect() throws Exception {
     // Initialize mocks
-    when(mockConnectionFactory.createConnection()).thenThrow(new JMSException("Connection refused"));
+    when(mockConnectionFactory.createTopicConnection()).thenThrow(new JMSException("Connection refused"));
 
     // Unit under test
     try {
       dao.push("");
     } catch (IOException e) {
       // Verify results
-      verify(mockConnectionFactory).createConnection();
+      verify(mockConnectionFactory).createTopicConnection();
       assertEquals("wrong error message", "IOException: javax.jms.JMSException: Connection refused", ExceptionUtils.getMessage(e));
       throw e;
     }
@@ -174,14 +171,15 @@ public class ActiveMqDaoTest {
       dao.push("{}");
     } catch (IOException e) {
       // Verify results
-      verify(mockConnectionFactory).createConnection();
+      verify(mockConnectionFactory).createTopicConnection();
       verify(mockConnection).start();
       verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
-      verify(mockSession).createQueue("logstash");
+      verify(mockSession).createTopic("logstash");
       verify(mockSession).createProducer(mockDestination);
       verify(mockProducer).setDeliveryMode(DeliveryMode.PERSISTENT);
       verify(mockSession).createTextMessage("{}");
-      verify(mockMessage).setStringProperty("txId", uuid);
+      verify(mockSession).close();
+      verify(mockConnection).close();
       assertEquals("wrong error message", "IOException: javax.jms.JMSException: Queue length limit exceeded", ExceptionUtils.getMessage(e));
       throw e;
     }
@@ -195,14 +193,14 @@ public class ActiveMqDaoTest {
     // Unit under test
     dao.push(json);
     // Verify results
-    verify(mockConnectionFactory).createConnection();
+    verify(mockConnectionFactory).createTopicConnection();
     verify(mockConnection).start();
     verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
-    verify(mockSession).createQueue("logstash");
+    verify(mockSession).createTopic("logstash");
     verify(mockSession).createProducer(mockDestination);
     verify(mockProducer).setDeliveryMode(DeliveryMode.PERSISTENT);
     verify(mockSession).createTextMessage(json);
-    verify(mockMessage).setStringProperty("txId",uuid);
+    verify(mockMessage).setJMSType("application/json");
     verify(mockProducer).send(mockMessage);
     verify(mockSession).close();
     verify(mockConnection).close();
@@ -217,14 +215,14 @@ public class ActiveMqDaoTest {
     // Unit under test
     dao.push(json);
     // Verify results
-    verify(mockConnectionFactory).createConnection();
+    verify(mockConnectionFactory).createTopicConnection();
     verify(mockConnection).start();
     verify(mockConnection).createSession(false, Session.AUTO_ACKNOWLEDGE);
-    verify(mockSession).createQueue("logstash");
+    verify(mockSession).createTopic("logstash");
     verify(mockSession).createProducer(mockDestination);
     verify(mockProducer).setDeliveryMode(DeliveryMode.PERSISTENT);
     verify(mockSession).createTextMessage(json);
-    verify(mockMessage).setStringProperty("txId",uuid);
+    verify(mockMessage).setJMSType("application/json");
     verify(mockProducer).send(mockMessage);
     verify(mockSession).close();
     verify(mockConnection).close();

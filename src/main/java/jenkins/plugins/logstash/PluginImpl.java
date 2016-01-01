@@ -23,14 +23,39 @@
  */
 package jenkins.plugins.logstash;
 
-import hudson.Plugin;
-
 import java.util.logging.Logger;
 
-public class PluginImpl extends Plugin {
-  private final static Logger LOG = Logger.getLogger(PluginImpl.class.getName());
+import hudson.Plugin;
 
-  public void start() throws Exception {
-    LOG.info("Logstash: a logstash agent to send jenkins logs to a logstash indexer.");
-  }
+public class PluginImpl extends Plugin {
+	private final static Logger LOG = Logger.getLogger(PluginImpl.class.getName());
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see hudson.Plugin#start()
+	 */
+	public void start() throws Exception {
+		LOG.info("Logstash: a logstash agent to send jenkins logs to a logstash indexer.");
+		PluginImpl plugin = (PluginImpl) getWrapper().getPlugin();
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see hudson.Plugin#postInitialize()
+	 */
+	@Override
+	public void postInitialize() throws Exception {
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see hudson.Plugin#stop()
+	 */
+	@Override
+	public void stop() throws Exception {
+	}
+
 }
